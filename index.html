@@ -1,0 +1,1245 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>حاسبة الكهربائي</title>
+<meta name="theme-color" content="#1C5FA8">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>html{color-scheme:light dark}body{margin:0}[hidden]{display:none!important}
+#install{display:none;margin-top:.75rem;border:0;border-radius:.6rem;padding:.6rem 1rem;background:var(--accent);color:var(--accent-ink);font:inherit;font-weight:700;cursor:pointer}
+#install.show{display:inline-block}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Arabic:wght@400;500;700&display=swap">
+<style>
+/* Layout: form column on the right (RTL), sticky readout column on the left; single column on phones.
+   Palette: concrete grey-green ground, deep slate ink, neutral-wire blue accent. Cable core colours are literal IEC colours. */
+:root {
+  --bg: #ECEFEC;
+  --surface: #F8FAF7;
+  --ink: #16232A;
+  --muted: #566870;
+  --line: #CDD5D1;
+  --accent: #1C5FA8;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #DCE9F6;
+  --ok: #1E7B46;
+  --ok-soft: #DDF0E4;
+  --warn: #9A4A08;
+  --warn-soft: #F8E8D6;
+  --bad: #B3261E;
+  --bad-soft: #F7DFDC;
+  --sheath: #D6DBD6;
+  --core-edge: rgba(0,0,0,.35);
+  --cu: #C9783A;
+  --al: #AEB6BB;
+  --font-ui: 'IBM Plex Sans Arabic', Tahoma, system-ui, sans-serif;
+  --font-num: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11181C; --surface: #192227; --ink: #E6ECEA; --muted: #93A5AA; --line: #2B3A41;
+    --accent: #6AAAEE; --accent-ink: #0B1620; --accent-soft: #1B2F44;
+    --ok: #5CCB8A; --ok-soft: #173325; --warn: #F0A25E; --warn-soft: #3A2713; --bad: #FF8A80; --bad-soft: #3D1D1A;
+    --sheath: #3A464C; --core-edge: rgba(255,255,255,.35);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11181C; --surface: #192227; --ink: #E6ECEA; --muted: #93A5AA; --line: #2B3A41;
+  --accent: #6AAAEE; --accent-ink: #0B1620; --accent-soft: #1B2F44;
+  --ok: #5CCB8A; --ok-soft: #173325; --warn: #F0A25E; --warn-soft: #3A2713; --bad: #FF8A80; --bad-soft: #3D1D1A;
+  --sheath: #3A464C; --core-edge: rgba(255,255,255,.35);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-ui); font-size: 1rem; line-height: 1.6;
+  padding-block: 1.25rem 2.5rem;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.app { max-width: 70rem; margin-inline: auto; direction: rtl; }
+.top { margin-bottom: 1.25rem; }
+.kicker { margin: 0; font-family: var(--font-num); font-size: .78rem; letter-spacing: .06em; color: var(--muted); direction: rtl; }
+h1 { margin: .15rem 0 .35rem; font-size: clamp(1.6rem, 5vw, 2.3rem); line-height: 1.2; font-weight: 700; text-wrap: balance; }
+.lede { margin: 0; color: var(--muted); max-width: 40rem; }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem; align-items: start; }
+@media (min-width: 56rem) {
+  .layout { grid-template-columns: minmax(0, 27rem) minmax(0, 1fr); }
+  .result-wrap { position: sticky; top: 1rem; }
+  .jump { display: none; }
+}
+.panel, .result {
+  background: var(--surface); border: 1px solid var(--line); border-radius: .75rem;
+}
+.panel { padding: 0; margin: 0; }
+fieldset { border: 0; margin: 0; padding: 1rem 1.1rem 1.1rem; min-width: 0; border-bottom: 1px solid var(--line); }
+fieldset:last-of-type { border-bottom: 0; }
+legend { padding: 0; font-weight: 700; font-size: .95rem; margin-bottom: .6rem; float: right; width: 100%; }
+legend + * { clear: both; }
+.lab { display: block; font-size: .82rem; font-weight: 500; color: var(--muted); margin-bottom: .3rem; }
+.field { min-width: 0; }
+.stack { display: grid; gap: .8rem; }
+.row2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
+@media (max-width: 24rem) { .row2 { grid-template-columns: minmax(0, 1fr); } }
+
+/* chips for load type */
+.chips { display: grid; grid-template-columns: repeat(auto-fit, minmax(7.6rem, 1fr)); gap: .5rem; }
+.chip { position: relative; display: block; cursor: pointer; }
+.chip input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.chip span { display: block; height: 100%; border: 1px solid var(--line); border-radius: .6rem; padding: .55rem .7rem; background: var(--bg); }
+.chip b { display: block; font-weight: 700; font-size: .95rem; }
+.chip small { display: block; color: var(--muted); font-size: .76rem; line-height: 1.35; }
+.chip input:checked + span { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.chip input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* segmented */
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--line); border-radius: .6rem; overflow: hidden; background: var(--bg); }
+.seg label { position: relative; text-align: center; padding: .55rem .4rem; font-size: .9rem; font-weight: 500; cursor: pointer; }
+.seg label + label { border-inline-start: 1px solid var(--line); }
+.seg input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.seg label:has(input:checked) { background: var(--ink); color: var(--bg); }
+.seg label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: -3px; }
+
+input[type="text"], select {
+  width: 100%; height: 2.9rem; padding: 0 .75rem; border: 1px solid var(--line); border-radius: .6rem;
+  background: var(--bg); color: var(--ink); font: inherit; font-size: 1rem;
+}
+input[type="text"] { font-family: var(--font-num); direction: ltr; text-align: right; font-size: 1.1rem; font-weight: 500; }
+select { appearance: auto; }
+input[type="text"]:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+.inline { display: grid; grid-template-columns: minmax(0, 1fr) 6.5rem; gap: .5rem; }
+.unit-fixed { display: flex; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: .6rem; font-family: var(--font-num); color: var(--muted); background: var(--bg); }
+.hint { margin: .35rem 0 0; font-size: .78rem; color: var(--muted); }
+.jump { display: block; width: 100%; margin: 0; padding: .85rem; border: 0; border-radius: 0 0 .75rem .75rem; background: var(--accent); color: var(--accent-ink); font: inherit; font-weight: 700; font-size: 1rem; cursor: pointer; }
+.jump:focus-visible, .copy:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+/* result */
+.result { padding: 1.1rem; display: grid; gap: 1.1rem; min-width: 0; }
+.empty { color: var(--muted); padding: .5rem 0; }
+.hero { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: .75rem; }
+.read { border: 1px solid var(--line); border-radius: .7rem; padding: .8rem .9rem; background: var(--bg); min-width: 0; }
+.read .k { display: block; font-size: .8rem; color: var(--muted); font-weight: 500; }
+.read .v { display: flex; align-items: baseline; gap: .35rem; direction: ltr; justify-content: flex-end; flex-wrap: wrap; font-family: var(--font-num); font-weight: 600; font-size: clamp(2rem, 7vw, 2.8rem); line-height: 1.1; letter-spacing: -.02em; }
+.read .v small { font-size: .95rem; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+.read .s { display: block; margin-top: .2rem; font-size: .82rem; color: var(--muted); }
+.cable { display: grid; grid-template-columns: 7rem minmax(0, 1fr); gap: 1rem; align-items: center; }
+.cable svg { width: 100%; height: auto; display: block; max-width: 100%; }
+.cable h3 { margin: 0 0 .15rem; font-size: 1.05rem; }
+.cable p { margin: 0; color: var(--muted); font-size: .88rem; }
+.cable .spec { font-family: var(--font-num); direction: ltr; text-align: right; font-weight: 600; font-size: 1.25rem; color: var(--ink); }
+h4 { margin: 0 0 .5rem; font-size: .9rem; font-weight: 700; }
+.steps { width: 100%; border-collapse: collapse; font-size: .92rem; }
+.steps td { padding: .45rem .1rem; border-bottom: 1px solid var(--line); }
+.steps td:last-child { text-align: left; font-family: var(--font-num); direction: ltr; font-weight: 500; white-space: nowrap; }
+.steps tr.hit td { font-weight: 700; }
+.steps tr.hit td:first-child::after { content: " (الأعلى)"; font-weight: 500; color: var(--muted); font-size: .8rem; }
+.steps tr.final td { border-bottom: 0; color: var(--accent); font-weight: 700; }
+dl.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: .6rem .9rem; margin: 0; }
+dl.facts div { min-width: 0; }
+dl.facts dt { font-size: .78rem; color: var(--muted); }
+dl.facts dd { margin: 0; font-family: var(--font-num); font-weight: 500; direction: ltr; text-align: right; font-size: 1.02rem; }
+.meter { position: relative; height: .55rem; background: var(--line); border-radius: 99px; margin-top: .45rem; }
+.meter i { position: absolute; inset-block: 0; inset-inline-start: 0; border-radius: 99px; background: var(--ok); }
+.meter u { position: absolute; top: -.25rem; bottom: -.25rem; width: 2px; background: var(--ink); text-decoration: none; }
+.checks { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem; }
+.checks li { display: grid; grid-template-columns: 1.4rem minmax(0, 1fr); gap: .5rem; align-items: start; font-size: .92rem; }
+.checks .dot { width: 1.25rem; height: 1.25rem; border-radius: 50%; background: var(--ok-soft); color: var(--ok); display: grid; place-items: center; font-size: .75rem; font-weight: 700; margin-top: .2rem; }
+.notes { display: grid; gap: .5rem; }
+.note { padding: .6rem .75rem; border-radius: .55rem; background: var(--accent-soft); font-size: .88rem; }
+.note.warn { background: var(--warn-soft); color: var(--warn); }
+.note.bad { background: var(--bad-soft); color: var(--bad); }
+.copy { justify-self: start; border: 1px solid var(--ink); background: transparent; color: var(--ink); border-radius: .6rem; padding: .55rem 1rem; font: inherit; font-weight: 500; cursor: pointer; }
+.fine { margin: 1.25rem 0 0; font-size: .78rem; color: var(--muted); max-width: 52rem; }
+.tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .4rem; margin-bottom: 1rem; padding: .3rem; background: var(--surface); border: 1px solid var(--line); border-radius: .8rem; }
+.tabs button { border: 0; border-radius: .55rem; padding: .7rem .25rem; font-size: .9rem; background: transparent; color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--ink); color: var(--bg); }
+.tabs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.tabs button { font-size: .8rem; padding: .7rem .1rem; }
+.acts { display: grid; gap: .5rem; }
+.acts input[type="text"] { direction: rtl; font-family: var(--font-ui); font-size: .95rem; font-weight: 400; height: 2.6rem; }
+.acts .row, .hitem .row { display: flex; flex-wrap: wrap; gap: .45rem; }
+.acts .row .copy, .hitem .row .copy, .htools .copy { padding: .5rem .85rem; font-size: .88rem; }
+.acts .sv, .htools .sv { background: var(--ink); color: var(--bg); }
+.hlist { display: grid; gap: .7rem; padding: 0; margin: 0; list-style: none; }
+.hitem { background: var(--surface); border: 1px solid var(--line); border-radius: .75rem; padding: .85rem; display: grid; gap: .5rem; min-width: 0; }
+.hitem h3 { margin: 0; font-size: 1rem; }
+.hitem .meta { font-size: .78rem; color: var(--muted); }
+.hitem .sum { margin: 0; font-size: .88rem; white-space: pre-line; overflow-wrap: anywhere; }
+.htools { display: flex; gap: .45rem; flex-wrap: wrap; margin-bottom: .8rem; }
+.tabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.row3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .6rem; }
+.bars { list-style: none; margin: 0; padding: 0; display: grid; gap: .55rem; }
+.bars li { display: grid; grid-template-columns: minmax(0, 7.2rem) minmax(0, 1fr) 3.6rem; gap: .6rem; align-items: center; font-size: .88rem; }
+.bars .t { height: .6rem; background: var(--line); border-radius: 99px; overflow: hidden; }
+.bars .t i { display: block; height: 100%; background: var(--accent); border-radius: 99px; }
+.bars b { font-family: var(--font-num); font-weight: 500; text-align: left; direction: ltr; }
+.lrow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 2.7rem; gap: .4rem .5rem; padding: .75rem 0; border-bottom: 1px solid var(--line); align-items: end; }
+.lrow:first-child { padding-top: 0; }
+.lrow .lt { grid-column: 1 / -1; }
+.del { height: 2.9rem; border: 1px solid var(--line); border-radius: .6rem; background: var(--bg); color: var(--bad); font-size: 1.3rem; line-height: 1; cursor: pointer; }
+.del:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.addrow { margin-top: .75rem; }
+.tblwrap { overflow-x: auto; }
+.ctab { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.ctab th { text-align: right; color: var(--muted); font-weight: 500; font-size: .78rem; padding: .3rem .25rem; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.ctab td { padding: .5rem .25rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+.ctab .num { font-family: var(--font-num); direction: ltr; text-align: left; white-space: nowrap; }
+.phnote { margin: .5rem 0 0; font-size: .8rem; color: var(--muted); }
+.goto { justify-self: start; border: 0; border-radius: .6rem; padding: .7rem 1.1rem; background: var(--accent); color: var(--accent-ink); font: inherit; font-weight: 700; cursor: pointer; }
+.goto:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+@media (prefers-reduced-motion: no-preference) { .meter i { transition: width .25s ease; } }
+</style>
+
+</head>
+<body>
+<div class="app" dir="rtl" lang="ar">
+  <header class="top">
+    <p class="kicker">220 / 380 V · 50 Hz</p>
+    <h1>حاسبة الكهربائي</h1>
+    <button type="button" id="install">ثبّت التطبيق على هاتفك</button>
+    <p class="lede" style="margin-top:.6rem">مقطع السلك والقاطع لكل حمل، وحجم التبريد لكل غرفة، والقاطع الرئيسي للوحة البيت.</p>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="الأقسام">
+    <button type="button" role="tab" id="t-wire" data-tab="wire" aria-selected="true">السلك والقاطع</button>
+    <button type="button" role="tab" id="t-cooling" data-tab="cooling" aria-selected="false">حمل التبريد</button>
+    <button type="button" role="tab" id="t-panel" data-tab="panel" aria-selected="false">لوحة البيت</button>
+    <button type="button" role="tab" id="t-history" data-tab="history" aria-selected="false">السجل</button>
+  </nav>
+
+  <div id="tab-wire">
+  <div class="layout">
+    <form id="f" class="panel" autocomplete="off" novalidate>
+      <fieldset>
+        <legend>نوع الحمل</legend>
+        <div class="chips" id="chips">
+          <label class="chip"><input type="radio" name="load" value="light"><span><b>إنارة</b><small>لمبات، LED، كشافات</small></span></label>
+          <label class="chip"><input type="radio" name="load" value="socket"><span><b>مآخذ كهرباء</b><small>بريزات عامة</small></span></label>
+          <label class="chip"><input type="radio" name="load" value="heater"><span><b>سخان / طباخ</b><small>مقاومة حرارية</small></span></label>
+          <label class="chip"><input type="radio" name="load" value="split" checked><span><b>سبلت</b><small>احسب من الطن ونوع الغاز</small></span></label>
+          <label class="chip"><input type="radio" name="load" value="ac"><span><b>مكيف آخر</b><small>شباك، مركزي، تيار معروف</small></span></label>
+          <label class="chip"><input type="radio" name="load" value="motor"><span><b>محرك</b><small>مضخة، ضاغط، مروحة</small></span></label>
+        </div>
+      </fieldset>
+
+      <fieldset id="splitbox" hidden>
+        <legend>بيانات السبلت</legend>
+        <div class="stack">
+          <div class="seg" role="radiogroup" aria-label="نوع الضاغط">
+            <label><input type="radio" name="inv" value="fixed" checked>عادي</label>
+            <label><input type="radio" name="inv" value="inv">إنفرتر</label>
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label class="lab" for="tons">السعة (طن)</label>
+              <select id="tons">
+                <option value="0.75">0.75 طن</option>
+                <option value="1">1 طن</option>
+                <option value="1.5">1.5 طن</option>
+                <option value="2" selected>2 طن</option>
+                <option value="2.5">2.5 طن</option>
+                <option value="3">3 طن</option>
+                <option value="4">4 طن</option>
+                <option value="5">5 طن</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="lab" for="gas">نوع الغاز</label>
+              <select id="gas">
+                <option value="R22">R22</option>
+                <option value="R407C">R407C</option>
+                <option value="R410A" selected>R410A</option>
+                <option value="R32">R32</option>
+              </select>
+            </div>
+          </div>
+          <p class="hint" id="splitinfo" style="margin:0"></p>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>النظام الكهربائي</legend>
+        <div class="stack">
+          <div class="seg" role="radiogroup" aria-label="عدد الأطوار">
+            <label><input type="radio" name="phases" value="1" checked>طور واحد</label>
+            <label><input type="radio" name="phases" value="3">ثلاثة أطوار</label>
+          </div>
+          <div class="field">
+            <label class="lab" for="volt">الجهد (فولت)</label>
+            <input type="text" id="volt" inputmode="decimal" value="220">
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset id="qtybox" hidden>
+        <legend>المقدار المعروف</legend>
+        <div class="stack">
+          <div class="seg" role="radiogroup" aria-label="طريقة الإدخال">
+            <label><input type="radio" name="mode" value="current" checked>أعرف التيار</label>
+            <label><input type="radio" name="mode" value="power">أعرف القدرة</label>
+          </div>
+          <div class="field">
+            <label class="lab" for="val" id="vallab">شدة التيار (أمبير)</label>
+            <div class="inline">
+              <input type="text" id="val" inputmode="decimal" value="12">
+              <div class="unit-fixed" id="unitfixed">A</div>
+              <select id="unit" hidden aria-label="وحدة القدرة">
+                <option value="kw">kW</option>
+                <option value="w">W</option>
+                <option value="hp">HP</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>المسافة والحدود</legend>
+        <div class="stack">
+          <div class="field">
+            <label class="lab" for="len">المسافة من اللوحة إلى الحمل (متر، اتجاه واحد)</label>
+            <input type="text" id="len" inputmode="decimal" value="60">
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label class="lab" for="vdmax">أقصى هبوط جهد %</label>
+              <input type="text" id="vdmax" inputmode="decimal" value="5">
+            </div>
+            <div class="field">
+              <label class="lab" for="pf">معامل القدرة cos φ</label>
+              <input type="text" id="pf" inputmode="decimal" value="0.85">
+            </div>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>ظروف التركيب</legend>
+        <div class="stack">
+          <div class="seg" role="radiogroup" aria-label="مادة الموصل">
+            <label><input type="radio" name="mat" value="cu" checked>نحاس</label>
+            <label><input type="radio" name="mat" value="al">ألمنيوم</label>
+          </div>
+          <div class="field">
+            <label class="lab" for="method">طريقة التمديد</label>
+            <select id="method">
+              <option value="B">داخل مواسير أو مخفي في الجدار</option>
+              <option value="C">مكشوف على حامل أو مثبت بالجدار</option>
+              <option value="D">مدفون في الأرض</option>
+            </select>
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label class="lab" for="temp">حرارة المحيط °م</label>
+              <select id="temp">
+                <option value="30">30</option>
+                <option value="35">35</option>
+                <option value="40" selected>40</option>
+                <option value="45">45</option>
+                <option value="50">50</option>
+                <option value="55">55</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="lab" for="group">دوائر في نفس المجرى</label>
+              <select id="group">
+                <option value="1">دائرة واحدة</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6 أو أكثر</option>
+              </select>
+            </div>
+          </div>
+          <p class="hint" style="margin:0">صيف العراق: اختر 45 أو 50 للتمديد المكشوف تحت الشمس.</p>
+        </div>
+      </fieldset>
+      <button type="button" class="jump" id="jump">اعرض النتيجة</button>
+    </form>
+
+    <div class="result-wrap">
+      <section class="result" id="out" aria-live="polite"></section>
+    </div>
+  </div>
+  </div>
+
+  <div id="tab-history" hidden>
+    <div class="htools"><button type="button" class="copy" id="hshareall">مشاركة الكل</button><button type="button" class="copy" id="hclear">مسح الكل</button></div>
+    <ul class="hlist" id="hlist"></ul>
+  </div>
+
+  <div id="tab-cooling" hidden>
+  <div class="layout">
+    <form id="cf" class="panel" autocomplete="off" novalidate>
+      <fieldset>
+        <legend>نوع الغرفة</legend>
+        <div class="chips">
+          <label class="chip"><input type="radio" name="room" value="bed" checked><span><b>غرفة نوم</b><small>شخصان تقريباً</small></span></label>
+          <label class="chip"><input type="radio" name="room" value="living"><span><b>صالة / معيشة</b><small>تجمع عائلي</small></span></label>
+          <label class="chip"><input type="radio" name="room" value="kitchen"><span><b>مطبخ</b><small>أجهزة وطبخ</small></span></label>
+          <label class="chip"><input type="radio" name="room" value="office"><span><b>مكتب</b><small>حواسيب وموظفون</small></span></label>
+          <label class="chip"><input type="radio" name="room" value="shop"><span><b>محل</b><small>دخول وخروج كثير</small></span></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>أبعاد الغرفة (متر)</legend>
+        <div class="row3">
+          <div class="field"><label class="lab" for="cl">الطول</label><input type="text" id="cl" inputmode="decimal" value="4"></div>
+          <div class="field"><label class="lab" for="cw">العرض</label><input type="text" id="cw" inputmode="decimal" value="4"></div>
+          <div class="field"><label class="lab" for="ch">الارتفاع</label><input type="text" id="ch" inputmode="decimal" value="3"></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>الجدران والنوافذ</legend>
+        <div class="stack">
+          <div class="row2">
+            <div class="field">
+              <label class="lab" for="cwalls">جدران تطل على الخارج</label>
+              <select id="cwalls">
+                <option value="0">لا يوجد</option>
+                <option value="1" selected>جدار واحد</option>
+                <option value="2">جداران</option>
+                <option value="3">3 جدران</option>
+                <option value="4">4 جدران</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="lab" for="cdir">أكثر جدار تعرضاً للشمس</label>
+              <select id="cdir">
+                <option value="N">شمال</option>
+                <option value="E">شرق</option>
+                <option value="S">جنوب</option>
+                <option value="W" selected>غرب</option>
+              </select>
+            </div>
+          </div>
+          <div class="seg" role="radiogroup" aria-label="عزل الجدران">
+            <label><input type="radio" name="cins" value="no" checked>جدران بدون عزل</label>
+            <label><input type="radio" name="cins" value="yes">جدران معزولة</label>
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label class="lab" for="cwin">مساحة النوافذ (م²)</label>
+              <input type="text" id="cwin" inputmode="decimal" value="2">
+            </div>
+            <div class="field">
+              <label class="lab" for="cshade">تظليل النافذة</label>
+              <select id="cshade">
+                <option value="none">بدون ستائر</option>
+                <option value="curtain" selected>ستائر</option>
+                <option value="ext">زجاج عاكس أو ظل خارجي</option>
+              </select>
+            </div>
+          </div>
+          <div class="seg" role="radiogroup" aria-label="نوع الزجاج">
+            <label><input type="radio" name="cglass" value="single" checked>زجاج مفرد</label>
+            <label><input type="radio" name="cglass" value="double">زجاج مزدوج</label>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>السقف</legend>
+        <div class="stack">
+          <div class="seg" role="radiogroup" aria-label="موقع الغرفة">
+            <label><input type="radio" name="ctop" value="top" checked>سقف مكشوف للشمس</label>
+            <label><input type="radio" name="ctop" value="mid">فوقها دور آخر</label>
+          </div>
+          <div class="seg" id="croofbox" role="radiogroup" aria-label="عزل السقف">
+            <label><input type="radio" name="croof" value="no" checked>سقف بدون عزل</label>
+            <label><input type="radio" name="croof" value="yes">سقف معزول</label>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>المناخ والاستخدام</legend>
+        <div class="stack">
+          <div class="field">
+            <label class="lab" for="cclim">حرارة الصيف</label>
+            <select id="cclim">
+              <option value="mild">معتدلة (حتى 38°م)</option>
+              <option value="hot" selected>حارة (حتى 45°م)</option>
+              <option value="xhot">حارة جداً (45°م فأكثر)</option>
+            </select>
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label class="lab" for="cppl">عدد الأشخاص</label>
+              <input type="text" id="cppl" inputmode="numeric" value="2">
+            </div>
+            <div class="field">
+              <label class="lab" for="capp">أجهزة كهربائية (واط)</label>
+              <input type="text" id="capp" inputmode="decimal" value="200">
+            </div>
+          </div>
+          <p class="hint" style="margin:0">الإنارة تُحسب تلقائياً من مساحة الغرفة. اترك الأجهزة كما هي إن لم تعرفها.</p>
+        </div>
+      </fieldset>
+      <button type="button" class="jump" id="cjump">اعرض النتيجة</button>
+    </form>
+
+    <div class="result-wrap">
+      <section class="result" id="cout" aria-live="polite"></section>
+    </div>
+  </div>
+  </div>
+
+  <div id="tab-panel" hidden>
+  <div class="layout">
+    <form id="pform" class="panel" autocomplete="off" novalidate>
+      <fieldset>
+        <legend>الأحمال في البيت</legend>
+        <div id="plist"></div>
+        <div class="addrow field">
+          <label class="lab" for="padd">إضافة جهاز أو حمل</label>
+          <select id="padd"></select>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>النظام</legend>
+        <div class="stack">
+          <div class="seg" role="radiogroup" aria-label="عدد الأطوار">
+            <label><input type="radio" name="pph" value="1" checked>طور واحد 220V</label>
+            <label><input type="radio" name="pph" value="3">ثلاثة أطوار 380V</label>
+          </div>
+          <div class="seg" role="radiogroup" aria-label="تزامن المكيفات">
+            <label><input type="radio" name="psum" value="yes" checked>المكيفات كلها تعمل معاً</label>
+            <label><input type="radio" name="psum" value="no">بعضها فقط</label>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>المسافات والتوسع</legend>
+        <div class="stack">
+          <div class="row2">
+            <div class="field">
+              <label class="lab" for="pfeeder">من العداد إلى اللوحة (م)</label>
+              <input type="text" id="pfeeder" inputmode="decimal" value="10">
+            </div>
+            <div class="field">
+              <label class="lab" for="pbranch">متوسط طول الدائرة (م)</label>
+              <input type="text" id="pbranch" inputmode="decimal" value="15">
+            </div>
+          </div>
+          <div class="field">
+            <label class="lab" for="pgrow">هامش لإضافات مستقبلية</label>
+            <select id="pgrow">
+              <option value="0">بدون</option>
+              <option value="0.1">10%</option>
+              <option value="0.2" selected>20%</option>
+              <option value="0.3">30%</option>
+            </select>
+          </div>
+        </div>
+      </fieldset>
+      <button type="button" class="jump" id="pjump">اعرض النتيجة</button>
+    </form>
+
+    <div class="result-wrap">
+      <section class="result" id="pout" aria-live="polite"></section>
+    </div>
+  </div>
+  </div>
+
+  <p class="fine">القيم مرجعية لأسلاك معزولة بـ PVC (70°م) وفق جداول IEC 60364-5-52 المعتادة. راجع الكود المحلي وجداول الشركة المصنعة قبل التنفيذ، واطلب مراجعة مهندس للأحمال الكبيرة. حمل التبريد وتوزيع لوحة البيت تقديران مبسّطان، وليسا بديلاً عن حساب هندسي كامل.</p>
+</div>
+
+<script>
+var SIZES = [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240];
+var AMP = {
+  B: { 2: [16.5, 23, 30, 38, 52, 69, 90, 111, 133, 168, 201, 232, 258, 294, 344],
+       3: [15.5, 21, 28, 36, 50, 68, 89, 110, 134, 171, 207, 239, 262, 296, 346] },
+  C: { 2: [22, 30, 40, 51, 70, 94, 119, 148, 180, 232, 282, 328, 379, 434, 514],
+       3: [19.5, 27, 36, 46, 63, 85, 112, 138, 168, 213, 258, 299, 344, 392, 461] },
+  D: { 2: [22, 29, 38, 47, 63, 81, 104, 125, 148, 183, 216, 246, 278, 312, 361],
+       3: [18, 24, 31, 39, 52, 67, 86, 103, 122, 151, 179, 203, 230, 258, 297] }
+};
+var BREAKERS = [6, 10, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630];
+var AIR = { 25: 1.06, 30: 1, 35: 0.94, 40: 0.87, 45: 0.79, 50: 0.71, 55: 0.61 };
+var SOIL = { 20: 1, 25: 0.95, 30: 0.89, 35: 0.84, 40: 0.77, 45: 0.71 };
+var GROUP = { 1: 1, 2: 0.8, 3: 0.7, 4: 0.65, 5: 0.6, 6: 0.57 };
+var LOADS = {
+  light:  { name: 'إنارة',        pf: 0.95, eff: 1,    vd: 3, margin: 1,    minS: 1.5, curve: 'B', rcd: false },
+  socket: { name: 'مآخذ كهرباء',  pf: 0.9,  eff: 1,    vd: 5, margin: 1,    minS: 2.5, curve: 'C', rcd: true },
+  heater: { name: 'سخان / طباخ',  pf: 1,    eff: 1,    vd: 5, margin: 1.25, minS: 2.5, curve: 'C', rcd: true },
+  ac:     { name: 'مكيف',         pf: 0.85, eff: 1,    vd: 5, margin: 1.25, minS: 2.5, curve: 'C', rcd: true },
+  split:  { name: 'سبلت',         pf: 0.85, eff: 1,    vd: 5, margin: 1.25, minS: 2.5, curve: 'C', rcd: true },
+  motor:  { name: 'محرك',         pf: 0.85, eff: 0.88, vd: 5, margin: 1.25, minS: 1.5, curve: 'D', rcd: false }
+};
+
+/* kW الكهربائية لكل طن عند حرارة جو عالية (تقدير متحفظ) */
+var GAS = {
+  R22:   { fixed: 1.50, inv: 1.30 },
+  R407C: { fixed: 1.45, inv: 1.25 },
+  R410A: { fixed: 1.35, inv: 1.15 },
+  R32:   { fixed: 1.25, inv: 1.05 }
+};
+function splitPower(p) { return p.tons * GAS[p.gas][p.inv === 'inv' ? 'inv' : 'fixed']; }
+
+function calc(p) {
+  var ld = LOADS[p.load];
+  var k = p.phases === 3 ? Math.sqrt(3) : 1;
+  var I, kw = null;
+  if (p.load === 'split') {
+    kw = splitPower(p);
+    I = (kw * 1000) / (k * p.V * p.pf);
+  } else if (p.mode === 'current') {
+    I = p.val;
+  } else {
+    var W = p.val * (p.unit === 'kw' ? 1000 : p.unit === 'hp' ? 746 : 1);
+    var eff = p.load === 'motor' ? ld.eff : 1;
+    I = W / (k * p.V * p.pf * eff);
+  }
+  var Id = I * ld.margin;
+  var In = null, i;
+  for (i = 0; i < BREAKERS.length; i++) { if (BREAKERS[i] >= Id - 1e-9) { In = BREAKERS[i]; break; } }
+  if (In === null) return { error: 'big', I: I, Id: Id };
+
+  var loaded = p.phases === 3 ? 3 : 2;
+  var kt = p.method === 'D' ? SOIL[p.temp - 10] : AIR[p.temp];
+  var kg = GROUP[p.group];
+  var km = p.mat === 'al' ? 0.78 : 1;
+  var minIdx = SIZES.indexOf(ld.minS);
+  if (p.mat === 'al') minIdx = Math.max(minIdx, SIZES.indexOf(16));
+  var rho = p.mat === 'al' ? 0.036 : 0.0225;
+  var X = 0.00008;
+  var sinf = Math.sqrt(Math.max(0, 1 - p.pf * p.pf));
+  var kv = p.phases === 3 ? Math.sqrt(3) : 2;
+
+  function vdv(idx) { return kv * I * p.L * ((rho / SIZES[idx]) * p.pf + X * sinf); }
+  function iz(idx) { return AMP[p.method][loaded][idx] * kt * kg * km; }
+
+  var ampIdx = -1, vdIdx = -1;
+  for (i = minIdx; i < SIZES.length; i++) {
+    if (ampIdx < 0 && iz(i) >= In) ampIdx = i;
+    if (vdIdx < 0 && (vdv(i) / p.V) * 100 <= p.vdMax) vdIdx = i;
+  }
+  if (ampIdx < 0) return { error: 'parallel', I: I, Id: Id, In: In };
+  if (vdIdx < 0) return { error: 'far', I: I, Id: Id, In: In };
+
+  var fin = Math.max(ampIdx, vdIdx);
+  var size = SIZES[fin];
+  var pe = size <= 16 ? size : size <= 35 ? 16 : SIZES.filter(function (s) { return s >= size / 2; })[0];
+  var cores = p.phases === 1 ? 3 : (p.load === 'motor' || p.load === 'ac' || p.load === 'split' ? 4 : 5);
+  var v = vdv(fin);
+  return {
+    I: I, Id: Id, In: In, size: size, pe: pe, cores: cores, kw: kw,
+    ampSize: SIZES[ampIdx], vdSize: SIZES[vdIdx], minSize: SIZES[minIdx],
+    iz: iz(fin), vdV: v, vdPct: (v / p.V) * 100,
+    kt: kt, kg: kg, km: km,
+    limit: ampIdx === vdIdx ? 'both' : (ampIdx > vdIdx ? 'amp' : 'vd')
+  };
+}
+
+var ROOMS = {
+  bed:     { ach: 0.5, app: 200,  people: 2 },
+  living:  { ach: 0.6, app: 400,  people: 4 },
+  kitchen: { ach: 1.0, app: 1500, people: 2 },
+  office:  { ach: 0.8, app: 500,  people: 3 },
+  shop:    { ach: 1.5, app: 800,  people: 5 }
+};
+var CLIM = {
+  mild: { dT: 13, wall: 20, solar: 0.8, roof: 0.6, lat: 1.2 },
+  hot:  { dT: 21, wall: 35, solar: 1.0, roof: 1.0, lat: 1.3 },
+  xhot: { dT: 25, wall: 45, solar: 1.1, roof: 1.2, lat: 1.5 }
+};
+var DIRW = { N: 0.7, E: 1, S: 0.9, W: 1.15 };
+var DIRS = { N: 100, E: 350, S: 250, W: 420 };
+var TONS = [0.75, 1, 1.5, 2, 2.5, 3, 4, 5];
+
+LOADS.feeder = { name: 'التغذية الرئيسية', pf: 0.9, eff: 1, vd: 3, margin: 1, minS: 4, curve: 'C', rcd: false };
+
+/* grp: light / socket = دوائر مشتركة، ded = دائرة مستقلة لكل جهاز. ac = يتأثر بتزامن الصيف */
+var PRESETS = {
+  light:   { name: 'إنارة (نقطة)',     w: 20,   df: 0.7,  pf: 0.95, grp: 'light' },
+  socket:  { name: 'مأخذ عام',         w: 200,  df: 0.4,  pf: 0.9,  grp: 'socket' },
+  split1:  { name: 'سبلت 1 طن',        w: 1350, df: 0.8,  pf: 0.85, grp: 'ded', load: 'ac', ac: true },
+  split15: { name: 'سبلت 1.5 طن',      w: 2025, df: 0.8,  pf: 0.85, grp: 'ded', load: 'ac', ac: true },
+  split2:  { name: 'سبلت 2 طن',        w: 2700, df: 0.8,  pf: 0.85, grp: 'ded', load: 'ac', ac: true },
+  split3:  { name: 'سبلت 3 طن',        w: 4050, df: 0.8,  pf: 0.85, grp: 'ded', load: 'ac', ac: true },
+  fridge:  { name: 'ثلاجة',            w: 250,  df: 0.5,  pf: 0.8,  grp: 'socket' },
+  freezer: { name: 'ديب فريزر',        w: 300,  df: 0.5,  pf: 0.8,  grp: 'socket' },
+  tv:      { name: 'تلفزيون',          w: 150,  df: 0.6,  pf: 0.9,  grp: 'socket' },
+  pc:      { name: 'حاسوب',            w: 300,  df: 0.5,  pf: 0.9,  grp: 'socket' },
+  micro:   { name: 'مايكروويف',        w: 1200, df: 0.15, pf: 0.9,  grp: 'socket' },
+  iron:    { name: 'مكواة',            w: 1800, df: 0.1,  pf: 1,    grp: 'socket' },
+  wash:    { name: 'غسالة',            w: 2000, df: 0.3,  pf: 0.9,  grp: 'ded', load: 'heater' },
+  heater:  { name: 'سخان ماء',         w: 3000, df: 0.3,  pf: 1,    grp: 'ded', load: 'heater' },
+  cooker:  { name: 'طباخ كهربائي',     w: 6000, df: 0.4,  pf: 1,    grp: 'ded', load: 'heater' },
+  pump:    { name: 'مضخة ماء',         w: 750,  df: 0.3,  pf: 0.8,  grp: 'ded', load: 'motor' },
+  other:   { name: 'حمل آخر',          w: 1000, df: 1,    pf: 0.9,  grp: 'ded', load: 'heater' }
+};
+
+function branch(load, mode, val, pf, o) {
+  return calc({ load: load, phases: 1, V: 220, mode: mode, val: val, unit: 'w', L: o.branchLen, pf: pf,
+    vdMax: LOADS[load].vd, mat: 'cu', method: 'B', temp: 40, group: 1 });
+}
+function panelCalc(rows, o) {
+  var conn = 0, dem = 0, pfw = 0, circuits = [];
+  var light = { q: 0, dem: 0 }, sock = { pts: 0, dem: 0 };
+  rows.forEach(function (r) {
+    var pr = PRESETS[r.t];
+    if (!pr || !(r.q > 0) || !(r.w > 0)) return;
+    var df = pr.ac ? (o.summer ? 1 : 0.7) : pr.df;
+    var c = r.q * r.w, d = c * df;
+    conn += c; dem += d; pfw += d * pr.pf;
+    if (pr.grp === 'light') { light.q += r.q; light.dem += d; }
+    else if (pr.grp === 'socket') { sock.pts += r.q; sock.dem += d; }
+    else circuits.push({ label: pr.name, n: Math.round(r.q), w: d / r.q, r: branch(pr.load, 'power', r.w, pr.pf, o) });
+  });
+  if (!(dem > 0)) return { empty: true };
+  if (light.q > 0) {
+    var nl = Math.ceil(light.q / 10);
+    circuits.unshift({ label: 'إنارة', n: nl, w: light.dem / nl, r: branch('light', 'current', 10, 0.95, o) });
+  }
+  if (sock.pts > 0) {
+    var ns = Math.max(Math.ceil(sock.pts / 8), Math.ceil(sock.dem / 2500));
+    circuits.splice(light.q > 0 ? 1 : 0, 0, { label: 'مآخذ', n: ns, w: sock.dem / ns, r: branch('socket', 'current', 16, 0.9, o) });
+  }
+  var np = o.phases === 3 ? 3 : 1, ph = [], asg = [], i, j;
+  for (i = 0; i < np; i++) { ph.push(0); asg.push({}); }
+  var units = [];
+  circuits.forEach(function (c) { for (var q = 0; q < c.n; q++) units.push({ label: c.label, w: c.w }); });
+  units.sort(function (a, b) { return b.w - a.w; });
+  units.forEach(function (u) {
+    j = 0;
+    for (i = 1; i < np; i++) if (ph[i] < ph[j]) j = i;
+    ph[j] += u.w;
+    asg[j][u.label] = (asg[j][u.label] || 0) + 1;
+  });
+  var maxW = Math.max.apply(null, ph), minW = Math.min.apply(null, ph);
+  var pf = pfw / dem;
+  var Iph = maxW / (220 * pf);
+  var Iplan = Iph * (1 + o.growth);
+  var feeder = calc({ load: 'feeder', phases: o.phases, V: o.phases === 3 ? 380 : 220, mode: 'current', val: Iplan, unit: 'w',
+    L: o.feederLen, pf: pf, vdMax: 3, mat: 'cu', method: 'B', temp: 40, group: 1 });
+  return { conn: conn, dem: dem, pf: pf, circuits: circuits, ph: ph, asg: asg, Iph: Iph, Iplan: Iplan, feeder: feeder,
+    imb: np === 3 ? ((maxW - minW) / (dem / 3)) * 100 : 0, nCirc: units.length };
+}
+
+function coolParts(c) {
+  var cl = CLIM[c.clim], rm = ROOMS[c.room];
+  var area = c.L * c.W, vol = area * c.H, avg = (c.L + c.W) / 2;
+  var wallArea = Math.max(0, c.walls * avg * c.H - c.wins);
+  var shade = { none: 1, curtain: 0.65, ext: 0.45 }[c.shade];
+  var glass = c.glass === 'double' ? 0.8 : 1;
+  var cond = (c.glass === 'double' ? 3 : 6) * cl.dT;
+  return {
+    win:  c.wins * (DIRS[c.dir] * cl.solar * shade * glass + cond),
+    wall: wallArea * cl.wall * DIRW[c.dir] * (c.insul === 'yes' ? 0.4 : 1),
+    roof: c.top ? area * 90 * cl.roof * (c.roofIns === 'yes' ? 0.35 : 1) : 0,
+    ppl:  c.people * 120,
+    eq:   c.app + area * 10,
+    air:  0.33 * rm.ach * vol * cl.dT * cl.lat,
+    wallArea: wallArea
+  };
+}
+function pickUnits(btu) {
+  for (var n = 1; n <= 4; n++) {
+    var need = btu / n;
+    for (var i = 0; i < TONS.length; i++) { if (TONS[i] * 12000 >= need * 0.95) return { n: n, ton: TONS[i] }; }
+  }
+  return { n: 4, ton: 5 };
+}
+function coolCalc(c) {
+  var P = coolParts(c);
+  var sum = P.win + P.wall + P.roof + P.ppl + P.eq + P.air;
+  var total = sum * 1.15;
+  var btu = total * 3.412;
+  var tips = [];
+  if (c.top && c.roofIns !== 'yes') {
+    var a = coolParts(Object.assign({}, c, { roofIns: 'yes' }));
+    tips.push({ kind: 'roof', save: (P.roof - a.roof) * 1.15 * 3.412 });
+  }
+  if (c.shade === 'none' && c.wins > 0) {
+    var b = coolParts(Object.assign({}, c, { shade: 'curtain' }));
+    tips.push({ kind: 'shade', save: (P.win - b.win) * 1.15 * 3.412 });
+  }
+  return { P: P, sum: sum, total: total, btu: btu, kw: total / 1000, units: pickUnits(btu), tips: tips };
+}
+
+if (typeof document !== 'undefined') {
+  var $ = function (id) { return document.getElementById(id); };
+  var form = $('f'), out = $('out');
+
+  function num(s) {
+    var t = String(s).replace(/[٠-٩]/g, function (d) { return d.charCodeAt(0) - 1632; })
+      .replace(/[۰-۹]/g, function (d) { return d.charCodeAt(0) - 1776; })
+      .replace(/[٫,،]/g, '.').replace(/\s/g, '');
+    return t === '' ? NaN : Number(t);
+  }
+  function radio(name) { var el = form.querySelector('input[name="' + name + '"]:checked'); return el ? el.value : null; }
+  function fmt(n, d) { return String(+Number(n).toFixed(d)); }
+
+  function cableSvg(n, mat) {
+    var BR = '#7B4A2A', BL = '#2F6FD8', BK = '#1B1F22', GR = '#8C9298', GY = 'url(#gy)';
+    var cols = n === 3 ? [BR, BL, GY] : n === 4 ? [BR, BK, GR, GY] : [BR, BK, GR, BL, GY];
+    var ring = n === 3 ? 27 : n === 4 ? 28 : 30;
+    var cr = n === 3 ? 17 : n === 4 ? 15 : 13;
+    var start = n === 4 ? -135 : -90;
+    var metal = mat === 'al' ? 'var(--al)' : 'var(--cu)';
+    var s = '<svg viewBox="0 0 120 120" role="img" aria-label="مقطع عرضي للكيبل"><defs><linearGradient id="gy" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2E8B3D"/><stop offset=".5" stop-color="#2E8B3D"/><stop offset=".5" stop-color="#E4C21A"/><stop offset="1" stop-color="#E4C21A"/></linearGradient></defs>';
+    s += '<circle cx="60" cy="60" r="57" fill="var(--sheath)" stroke="var(--core-edge)" stroke-width="1.5"/>';
+    for (var i = 0; i < n; i++) {
+      var a = (start + (360 / n) * i) * Math.PI / 180;
+      var x = 60 + ring * Math.cos(a), y = 60 + ring * Math.sin(a);
+      s += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="' + cr + '" fill="' + cols[i] + '" stroke="var(--core-edge)" stroke-width="1"/>';
+      s += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="' + (cr * 0.52).toFixed(1) + '" fill="' + metal + '"/>';
+    }
+    return s + '</svg>';
+  }
+
+  function splitInfo(p) {
+    if (p.load !== 'split') return;
+    var kw = splitPower(p);
+    var txt = fmt(p.tons, 2) + ' طن = ' + Math.round(p.tons * 12000) + ' BTU. القدرة المقدّرة ' + fmt(kw, 2) + ' kW';
+    if (p.V > 0 && p.pf > 0 && p.pf <= 1) {
+      var k = p.phases === 3 ? Math.sqrt(3) : 1;
+      txt += '، والتيار ' + fmt((kw * 1000) / (k * p.V * p.pf), 1) + ' A';
+    }
+    $('splitinfo').textContent = txt + '.';
+  }
+
+  function render() {
+    var p = {
+      load: radio('load'), phases: +radio('phases'), mode: radio('mode'), unit: $('unit').value,
+      val: num($('val').value), V: num($('volt').value), L: num($('len').value),
+      vdMax: num($('vdmax').value), pf: num($('pf').value),
+      mat: radio('mat'), method: $('method').value, temp: +$('temp').value, group: +$('group').value,
+      tons: +$('tons').value, gas: $('gas').value, inv: radio('inv')
+    };
+    splitInfo(p);
+    var bad = (p.load !== 'split' && !(p.val > 0)) ? (p.mode === 'current' ? 'أدخل شدة التيار.' : 'أدخل القدرة.')
+      : !(p.L >= 0) ? 'أدخل المسافة بالمتر.'
+      : !(p.V > 0) ? 'أدخل الجهد.'
+      : !(p.pf > 0 && p.pf <= 1) ? 'معامل القدرة يجب أن يكون بين 0.1 و 1.'
+      : !(p.vdMax > 0) ? 'أدخل أقصى هبوط جهد.' : '';
+    if (bad) { out.innerHTML = '<p class="empty">' + bad + '</p>'; return null; }
+
+    var r = calc(p);
+    var ld = LOADS[p.load];
+    var matName = p.mat === 'al' ? 'ألمنيوم' : 'نحاس';
+
+    if (r.error) {
+      var msg = r.error === 'big'
+        ? 'التيار المحسوب ' + fmt(r.Id, 0) + ' أمبير أكبر من 630 أمبير. هذا الحمل يحتاج تصميم لوحة وكيبلات من مهندس.'
+        : r.error === 'parallel'
+        ? 'القاطع المطلوب ' + r.In + ' أمبير أكبر مما يحمله أكبر كيبل (240 مم²) في هذه الظروف. استخدم كيبلات على التوازي لكل طور أو قلل الحمل على الدائرة.'
+        : 'المسافة طويلة جداً: حتى 240 مم² يتجاوز هبوط الجهد الحد المسموح. ارفع الجهد أو قرّب مصدر التغذية أو زد الحد المسموح.';
+      out.innerHTML = '<div class="note bad">' + msg + '</div><dl class="facts"><div><dt>التيار المحسوب</dt><dd>' + fmt(r.I, 1) + ' A</dd></div></dl>';
+      return null;
+    }
+
+    var poles = p.phases === 3 ? '3P' : '1P';
+    var cls = r.vdPct > p.vdMax * 0.85 ? 'var(--warn)' : 'var(--ok)';
+    var mpct = Math.min(r.vdPct / p.vdMax, 1.5) / 1.5 * 100;
+    var lpct = 100 / 1.5;
+    var cableTxt = r.cores + '×' + fmt(r.size, 1);
+
+    var h = '';
+    h += '<div class="hero">';
+    h += '<div class="read"><span class="k">مقطع السلك</span><span class="v">' + fmt(r.size, 1) + '<small>mm²</small></span><span class="s">' + matName + '</span></div>';
+    h += '<div class="read"><span class="k">القاطع</span><span class="v">' + r.In + '<small>A</small></span><span class="s">' + poles + ' · منحنى ' + ld.curve + '</span></div>';
+    h += '</div>';
+
+    h += '<div class="cable">' + cableSvg(r.cores, p.mat) + '<div><h3>الكيبل المطلوب</h3><div class="spec">' + cableTxt + ' mm²</div><p>' +
+      (r.cores === 3 ? 'طور + تعادل + أرضي' : r.cores === 4 ? '3 أطوار + أرضي' : '3 أطوار + تعادل + أرضي') +
+      '. الأرضي ' + fmt(r.pe, 1) + ' mm² على الأقل.</p></div></div>';
+
+    h += '<div><h4>كيف تحدد المقطع</h4><table class="steps"><tbody>';
+    h += '<tr class="' + (r.limit !== 'vd' ? 'hit' : '') + '"><td>حسب تحمل التيار</td><td>' + fmt(r.ampSize, 1) + ' mm²</td></tr>';
+    h += '<tr class="' + (r.limit !== 'amp' ? 'hit' : '') + '"><td>حسب هبوط الجهد</td><td>' + fmt(r.vdSize, 1) + ' mm²</td></tr>';
+    h += '<tr class="final"><td>المعتمد</td><td>' + fmt(r.size, 1) + ' mm²</td></tr>';
+    h += '</tbody></table></div>';
+
+    h += '<div><h4>التفاصيل</h4><dl class="facts">';
+    if (p.load === 'split') h += '<div><dt>السبلت</dt><dd>' + fmt(p.tons, 2) + ' طن · ' + p.gas + '</dd></div><div><dt>القدرة المقدّرة</dt><dd>' + fmt(r.kw, 2) + ' kW</dd></div>';
+    h += '<div><dt>تيار الحمل' + (p.load === 'split' ? ' (تقدير)' : '') + '</dt><dd>' + fmt(r.I, 1) + ' A</dd></div>';
+    h += '<div><dt>تيار التصميم' + (ld.margin > 1 ? ' (×' + ld.margin + ')' : '') + '</dt><dd>' + fmt(r.Id, 1) + ' A</dd></div>';
+    h += '<div><dt>تحمل الكيبل بعد التصحيح</dt><dd>' + fmt(r.iz, 1) + ' A</dd></div>';
+    h += '<div><dt>معامل الحرارة × التجميع</dt><dd>' + fmt(r.kt, 2) + ' × ' + fmt(r.kg, 2) + '</dd></div>';
+    h += '<div style="grid-column:1/-1"><dt>هبوط الجهد</dt><dd>' + fmt(r.vdV, 2) + ' V = ' + fmt(r.vdPct, 2) + '% من ' + fmt(p.vdMax, 1) + '%</dd>' +
+      '<div class="meter" role="img" aria-label="هبوط الجهد مقابل الحد"><i style="width:' + mpct.toFixed(1) + '%;background:' + cls + '"></i><u style="inset-inline-start:' + lpct.toFixed(1) + '%"></u></div></div>';
+    h += '</dl></div>';
+
+    h += '<ul class="checks">';
+    h += '<li><span class="dot">✓</span><span>تيار التصميم ' + fmt(r.Id, 1) + ' A لا يتجاوز القاطع ' + r.In + ' A</span></li>';
+    h += '<li><span class="dot">✓</span><span>القاطع ' + r.In + ' A لا يتجاوز تحمل الكيبل ' + fmt(r.iz, 1) + ' A</span></li>';
+    h += '<li><span class="dot">✓</span><span>هبوط الجهد ' + fmt(r.vdPct, 2) + '% ضمن الحد ' + fmt(p.vdMax, 1) + '%</span></li>';
+    h += '</ul>';
+
+    var notes = [];
+    if (r.limit === 'vd') notes.push(['warn', 'المسافة هي ما رفع المقطع من ' + fmt(r.ampSize, 1) + ' إلى ' + fmt(r.size, 1) + ' mm². الكيبل الأصغر يحمل التيار لكنه يسقط الجهد أكثر من الحد.']);
+    if (p.load === 'motor') notes.push(['', 'المحرك يسحب 6 إلى 7 أضعاف تياره عند التشغيل، لذلك المنحنى D. ركّب أيضاً أوفرلود حرارياً مضبوطاً على تيار لوحة المحرك.']);
+    if (p.load === 'ac') notes.push(['', 'للمكيف خذ تيار التشغيل من لوحة الجهاز. إن كان الضاغط كبيراً قد يلزم منحنى D.']);
+    if (p.load === 'split') {
+      notes.push(['', 'التيار مقدَّر من الطن ونوع الغاز عند حرارة جو عالية. للدقة الكاملة اقرأ تيار لوحة الوحدة الخارجية واحسب عبر خيار «مكيف آخر».']);
+      if (p.phases === 1) notes.push(['', 'كيبل التوصيل بين الوحدة الداخلية والخارجية عادة 4×' + (p.tons <= 2 ? '1.5' : '2.5') + ' mm². راجع دليل الجهاز.']);
+      if (p.tons >= 4 && p.phases === 1) notes.push(['warn', 'السبلت ' + fmt(p.tons, 2) + ' طن يكون غالباً ثلاثة أطوار. تأكد من لوحة الجهاز.']);
+    }
+    if (ld.rcd) notes.push(['', 'يُنصح بقاطع تسرب أرضي 30 mA على هذه الدائرة.']);
+    if (p.phases === 3) notes.push(['', 'احسب الحمل المتوازن على الأطوار الثلاثة. إن اختلّ التوازن زاد تيار التعادل.']);
+    if (p.mat === 'al') notes.push(['warn', 'الألمنيوم يحتاج وصلات مخصصة (ثنائية المعدن) وتشديداً دورياً. لا يُوصل مباشرة بأطراف نحاسية عادية.']);
+    if (p.temp >= 50) notes.push(['warn', 'حرارة المحيط ' + p.temp + '°م مرتفعة. فكّر في عزل XLPE (90°م) أو تظليل المسار.']);
+    if (r.In >= 125) notes.push(['warn', 'تيار كبير. راجع مهندساً لتنسيق الحماية وتيار القصر.']);
+    if (notes.length) {
+      h += '<div class="notes">' + notes.map(function (n) { return '<div class="note ' + n[0] + '">' + n[1] + '</div>'; }).join('') + '</div>';
+    }
+    h += '<div class="acts" data-acts></div>';
+
+    out.innerHTML = h;
+    var summary = ld.name + (p.load === 'split' ? ' ' + fmt(p.tons, 2) + ' طن ' + p.gas : '') + ' — كيبل ' + matName + ' ' + cableTxt + ' mm² — قاطع ' + r.In + 'A ' + poles + ' (' + ld.curve + ') — المسافة ' + fmt(p.L, 1) + ' م — هبوط الجهد ' + fmt(r.vdPct, 2) + '%';
+    bar(out, 'wire', summary, form);
+    return r;
+  }
+
+  function applyLoadUI() {
+    var sp = radio('load') === 'split';
+    $('splitbox').hidden = !sp;
+    $('qtybox').hidden = sp;
+  }
+  function splitPf() { return radio('inv') === 'inv' ? '0.95' : '0.85'; }
+  function onLoadChange() {
+    var l = radio('load'), ld = LOADS[l];
+    $('pf').value = l === 'split' ? splitPf() : String(ld.pf);
+    $('vdmax').value = String(ld.vd);
+    applyLoadUI();
+  }
+  function onModeChange() {
+    var power = radio('mode') === 'power';
+    $('unit').hidden = !power;
+    $('unitfixed').hidden = power;
+    $('vallab').textContent = power ? 'القدرة' : 'شدة التيار (أمبير)';
+  }
+  function onPhasesChange() { $('volt').value = radio('phases') === '3' ? '380' : '220'; }
+
+  form.addEventListener('change', function (e) {
+    var n = e.target.name || e.target.id;
+    if (n === 'load') onLoadChange();
+    if (n === 'inv') $('pf').value = splitPf();
+    if (n === 'mode') onModeChange();
+    if (n === 'phases') onPhasesChange();
+    render();
+  });
+  form.addEventListener('input', render);
+  form.addEventListener('submit', function (e) { e.preventDefault(); });
+  $('jump').addEventListener('click', function () { out.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+
+  /* ===== حمل التبريد ===== */
+  var cform = $('cf'), cout = $('cout');
+  function cradio(n) { var el = cform.querySelector('input[name="' + n + '"]:checked'); return el ? el.value : null; }
+  function nfmt(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+
+  function renderCool() {
+    var c = {
+      room: cradio('room'), L: num($('cl').value), W: num($('cw').value), H: num($('ch').value),
+      walls: +$('cwalls').value, dir: $('cdir').value, insul: cradio('cins'), wins: num($('cwin').value),
+      glass: cradio('cglass'), shade: $('cshade').value, top: cradio('ctop') === 'top', roofIns: cradio('croof'),
+      clim: $('cclim').value, people: num($('cppl').value), app: num($('capp').value)
+    };
+    $('croofbox').hidden = !c.top;
+    var bad = !(c.L > 0 && c.W > 0) ? 'أدخل طول الغرفة وعرضها.'
+      : !(c.H >= 2 && c.H <= 8) ? 'الارتفاع يجب أن يكون بين 2 و 8 أمتار.'
+      : !(c.wins >= 0) ? 'أدخل مساحة النوافذ (صفر إن لم توجد).'
+      : !(c.people >= 0) ? 'أدخل عدد الأشخاص.'
+      : !(c.app >= 0) ? 'أدخل قدرة الأجهزة بالواط (صفر إن لم تعرفها).' : '';
+    if (bad) { cout.innerHTML = '<p class="empty">' + bad + '</p>'; return; }
+
+    var r = coolCalc(c), P = r.P, u = r.units;
+    var h = '<div class="hero">';
+    h += '<div class="read"><span class="k">الحمل التبريدي</span><span class="v">' + nfmt(r.btu) + '<small>BTU/h</small></span><span class="s"><bdi dir="ltr">' + fmt(r.kw, 1) + ' kW</bdi> · ' + fmt(r.btu / 12000, 2) + ' طن</span></div>';
+    h += '<div class="read"><span class="k">السبلت المناسب</span><span class="v">' + (u.n > 1 ? u.n + '×' : '') + fmt(u.ton, 2) + '<small>طن</small></span><span class="s"><bdi dir="ltr">' + nfmt(u.ton * 12000) + ' BTU</bdi>' + (u.n > 1 ? ' لكل وحدة' : '') + '</span></div>';
+    h += '</div>';
+
+    var items = [['نوافذ', P.win], ['جدران', P.wall], ['سقف', P.roof], ['أشخاص', P.ppl], ['إضاءة وأجهزة', P.eq], ['تهوية وتسرب هواء', P.air]]
+      .filter(function (x) { return x[1] > 0; }).sort(function (a, b) { return b[1] - a[1]; });
+    h += '<div><h4>من أين يأتي الحمل</h4><ul class="bars">' + items.map(function (x) {
+      var pc = x[1] / r.sum * 100;
+      return '<li><span>' + x[0] + '</span><span class="t"><i style="width:' + pc.toFixed(1) + '%"></i></span><b>' + Math.round(pc) + '%</b></li>';
+    }).join('') + '</ul></div>';
+
+    var notes = [];
+    r.tips.forEach(function (t) {
+      if (t.save < 300) return;
+      notes.push(['', t.kind === 'roof'
+        ? 'عزل السقف يخفض الحمل بنحو <bdi dir="ltr">' + nfmt(t.save) + ' BTU/h</bdi>.'
+        : 'إضافة ستائر للنافذة تخفض الحمل بنحو <bdi dir="ltr">' + nfmt(t.save) + ' BTU/h</bdi>.']);
+    });
+    if (u.n > 1) notes.push(['warn', 'الحمل أكبر من سبلت واحد. استخدم ' + u.n + ' وحدات متساوية أو جهازاً مركزياً.']);
+    if (c.walls * ((c.L + c.W) / 2) * c.H < c.wins) notes.push(['warn', 'مساحة النوافذ أكبر من مساحة الجدران الخارجية المدخلة. راجع الأرقام.']);
+    if (c.room === 'kitchen') notes.push(['', 'المطبخ يحتاج شفاطاً. لا تعتمد على السبلت لإزالة حرارة الطبخ.']);
+    notes.push(['', 'تم إضافة هامش أمان 15% على الحساب. السبلت الأكبر من اللازم بكثير يشتغل ويطفي كثيراً ولا يجفف الهواء جيداً.']);
+    h += '<div class="notes">' + notes.map(function (n) { return '<div class="note ' + n[0] + '">' + n[1] + '</div>'; }).join('') + '</div>';
+    if (u.n === 1) h += '<button type="button" class="goto" id="gowire">احسب سلك وقاطع هذا السبلت</button>';
+    h += '<div class="acts" data-acts></div>';
+    cout.innerHTML = h;
+    bar(cout, 'cool', 'حمل التبريد — ' + (function () { var el = cform.querySelector('input[name="room"]:checked'), b = el && el.closest('label') && el.closest('label').querySelector('b'); return b ? b.textContent : ''; })() + ' — ' + nfmt(r.btu) + ' BTU/h (' + fmt(r.kw, 1) + ' kW) — سبلت ' + (u.n > 1 ? u.n + '×' : '') + fmt(u.ton, 2) + ' طن', cform);
+    if (u.n === 1) {
+      $('gowire').addEventListener('click', function () {
+        form.querySelector('input[name="load"][value="split"]').checked = true;
+        onLoadChange();
+        $('tons').value = String(u.ton);
+        showTab('wire');
+        render();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+  }
+
+  cform.addEventListener('change', function (e) {
+    if (e.target.name === 'room') {
+      var rm = ROOMS[cradio('room')];
+      $('capp').value = String(rm.app);
+      $('cppl').value = String(rm.people);
+    }
+    renderCool();
+  });
+  cform.addEventListener('input', renderCool);
+  cform.addEventListener('submit', function (e) { e.preventDefault(); });
+  $('cjump').addEventListener('click', function () { cout.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+
+  /* ===== لوحة البيت ===== */
+  var pform = $('pform'), pout = $('pout'), plist = $('plist'), padd = $('padd');
+  var panelRows = [
+    { t: 'light', q: 12, w: 20 }, { t: 'socket', q: 10, w: 200 }, { t: 'split2', q: 2, w: 2700 },
+    { t: 'split15', q: 1, w: 2025 }, { t: 'fridge', q: 1, w: 250 }, { t: 'wash', q: 1, w: 2000 },
+    { t: 'heater', q: 1, w: 3000 }, { t: 'tv', q: 2, w: 150 }
+  ];
+  function pradio(n) { var el = pform.querySelector('input[name="' + n + '"]:checked'); return el ? el.value : null; }
+  var presetOptions = Object.keys(PRESETS).map(function (k) { return '<option value="' + k + '">' + PRESETS[k].name + '</option>'; }).join('');
+  padd.innerHTML = '<option value="">اختر ما تريد إضافته…</option>' + presetOptions;
+
+  function drawList() {
+    plist.innerHTML = panelRows.map(function (r, i) {
+      return '<div class="lrow"><div class="lt field"><label class="lab" for="lt' + i + '">الحمل</label>' +
+        '<select id="lt' + i + '" data-i="' + i + '" data-f="t">' +
+        Object.keys(PRESETS).map(function (k) { return '<option value="' + k + '"' + (k === r.t ? ' selected' : '') + '>' + PRESETS[k].name + '</option>'; }).join('') +
+        '</select></div>' +
+        '<div class="field"><label class="lab" for="lq' + i + '">العدد</label><input type="text" id="lq' + i + '" inputmode="numeric" data-i="' + i + '" data-f="q" value="' + r.q + '"></div>' +
+        '<div class="field"><label class="lab" for="lw' + i + '">واط للواحد</label><input type="text" id="lw' + i + '" inputmode="decimal" data-i="' + i + '" data-f="w" value="' + r.w + '"></div>' +
+        '<button type="button" class="del" data-del="' + i + '" aria-label="حذف هذا الحمل">×</button></div>';
+    }).join('') || '<p class="empty">لا توجد أحمال. أضف أول حمل من القائمة.</p>';
+  }
+
+  function renderPanel() {
+    var o = { phases: +pradio('pph'), summer: pradio('psum') === 'yes', feederLen: num($('pfeeder').value),
+      branchLen: num($('pbranch').value), growth: +$('pgrow').value };
+    if (!(o.feederLen >= 0) || !(o.branchLen >= 0)) { pout.innerHTML = '<p class="empty">أدخل المسافات بالمتر.</p>'; return; }
+    var r = panelCalc(panelRows, o);
+    if (r.empty) { pout.innerHTML = '<p class="empty">أضف حملاً واحداً على الأقل بعدد وقدرة أكبر من صفر.</p>'; return; }
+    var f = r.feeder, poles = o.phases === 3 ? '3P' : '1P', h = '';
+    if (f.error) {
+      pout.innerHTML = '<div class="note bad">تعذّر تحديد التغذية الرئيسية: التيار ' + fmt(r.Iplan, 0) + ' أمبير كبير أو المسافة طويلة. استشر مهندساً لتصميم لوحة رئيسية.</div>';
+      return;
+    }
+    h += '<div class="hero">';
+    h += '<div class="read"><span class="k">القاطع الرئيسي</span><span class="v">' + f.In + '<small>A</small></span><span class="s"><bdi dir="ltr">' + poles + '</bdi> · كيبل <bdi dir="ltr">' + f.cores + '×' + fmt(f.size, 1) + ' mm²</bdi></span></div>';
+    h += '<div class="read"><span class="k">الحمل الفعلي بعد التزامن</span><span class="v">' + fmt(r.dem / 1000, 1) + '<small>kW</small></span><span class="s">المتصل <bdi dir="ltr">' + fmt(r.conn / 1000, 1) + ' kW</bdi> · ' + r.nCirc + ' دائرة</span></div>';
+    h += '</div>';
+
+    if (o.phases === 3) {
+      var names = ['L1', 'L2', 'L3'], cols = ['#7B4A2A', '#1B1F22', '#8C9298'], maxW = Math.max.apply(null, r.ph);
+      h += '<div><h4>توزيع الدوائر على الأطوار</h4><ul class="bars">' + r.ph.map(function (w, i) {
+        return '<li><span>' + names[i] + '</span><span class="t"><i style="width:' + (w / maxW * 100).toFixed(1) + '%;background:' + cols[i] + ';box-shadow:inset 0 0 0 1px var(--core-edge)"></i></span><b>' + fmt(w / (220 * r.pf), 0) + 'A</b></li>';
+      }).join('') + '</ul>';
+      h += r.asg.map(function (a, i) {
+        return '<p class="phnote"><b>' + names[i] + ':</b> ' + Object.keys(a).map(function (k) { return k + ' ×' + a[k]; }).join('، ') + '</p>';
+      }).join('') + '</div>';
+    }
+
+    h += '<div><h4>الدوائر المقترحة</h4><div class="tblwrap"><table class="ctab"><thead><tr><th>الدائرة</th><th>العدد</th><th>القاطع</th><th>الكيبل</th></tr></thead><tbody>' +
+      r.circuits.map(function (c) {
+        var ok = !c.r.error;
+        return '<tr><td>' + c.label + '</td><td class="num">' + c.n + '</td><td class="num">' + (ok ? (c.label === 'إنارة' ? Math.max(c.r.In, 10) : c.r.In) + ' A' : '—') + '</td><td class="num">' + (ok ? c.r.cores + '×' + fmt(c.r.size, 1) : '—') + '</td></tr>';
+      }).join('') + '</tbody></table></div></div>';
+
+    h += '<div><h4>التفاصيل</h4><dl class="facts">';
+    h += '<div><dt>تيار الطور الأعلى</dt><dd>' + fmt(r.Iph, 1) + ' A</dd></div>';
+    h += '<div><dt>مع الهامش المستقبلي</dt><dd>' + fmt(r.Iplan, 1) + ' A</dd></div>';
+    h += '<div><dt>معامل القدرة</dt><dd>' + fmt(r.pf, 2) + '</dd></div>';
+    h += '<div><dt>هبوط الجهد للتغذية</dt><dd>' + fmt(f.vdPct, 2) + '%</dd></div>';
+    h += '</dl></div>';
+
+    var notes = [];
+    if (o.phases === 1 && r.Iplan > 63) notes.push(['warn', 'التيار ' + fmt(r.Iplan, 0) + ' أمبير كبير لطور واحد. فكّر في خدمة ثلاثة أطوار وتوزيع الدوائر عليها.']);
+    if (o.phases === 3 && r.imb > 25) notes.push(['warn', 'عدم توازن الأطوار ' + fmt(r.imb, 0) + '%. بدّل بعض الدوائر بين الأطوار.']);
+    notes.push(['', 'ركّب قاطع تسرب 30 mA لدوائر المآخذ والسخان والغسالة.']);
+    if (o.phases === 3) notes.push(['', 'التوزيع يفترض أحمالاً أحادية الطور. المحركات والمكيفات الثلاثية الأطوار تحتاج دوائر خاصة بها.']);
+    notes.push(['', 'الحساب يفترض كيبل نحاس داخل مواسير وحرارة 40°م. تزامن الأحمال تقدير، فعدّله بحسب استخدام الأسرة.']);
+    h += '<div class="notes">' + notes.map(function (n) { return '<div class="note ' + n[0] + '">' + n[1] + '</div>'; }).join('') + '</div>';
+    h += '<div class="acts" data-acts></div>';
+    pout.innerHTML = h;
+
+    var summary = 'لوحة البيت — قاطع رئيسي ' + f.In + 'A ' + poles + ' — كيبل ' + f.cores + '×' + fmt(f.size, 1) + ' mm² — الحمل بعد التزامن ' + fmt(r.dem / 1000, 1) + ' kW — ' + r.nCirc + ' دائرة\n' +
+      r.circuits.map(function (c) { return c.label + ' ×' + c.n + (c.r.error ? '' : ': ' + (c.label === 'إنارة' ? Math.max(c.r.In, 10) : c.r.In) + 'A، ' + c.r.cores + '×' + fmt(c.r.size, 1)); }).join('\n');
+    bar(pout, 'panel', summary, pform);
+  }
+
+  plist.addEventListener('input', function (e) {
+    var i = e.target.getAttribute('data-i'), f = e.target.getAttribute('data-f');
+    if (i === null || f === 't') return;
+    panelRows[+i][f] = num(e.target.value);
+    renderPanel();
+  });
+  plist.addEventListener('change', function (e) {
+    var i = e.target.getAttribute('data-i');
+    if (i !== null && e.target.getAttribute('data-f') === 't') {
+      panelRows[+i].t = e.target.value;
+      panelRows[+i].w = PRESETS[e.target.value].w;
+      drawList(); renderPanel();
+    }
+  });
+  plist.addEventListener('click', function (e) {
+    var d = e.target.getAttribute('data-del');
+    if (d !== null) { panelRows.splice(+d, 1); drawList(); renderPanel(); }
+  });
+  padd.addEventListener('change', function () {
+    if (!padd.value) return;
+    panelRows.push({ t: padd.value, q: 1, w: PRESETS[padd.value].w });
+    padd.value = '';
+    drawList(); renderPanel();
+  });
+  pform.addEventListener('change', function (e) { if (!plist.contains(e.target) && e.target !== padd) renderPanel(); });
+  pform.addEventListener('input', function (e) { if (!plist.contains(e.target)) renderPanel(); });
+  pform.addEventListener('submit', function (e) { e.preventDefault(); });
+  $('pjump').addEventListener('click', function () { pout.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+
+  /* ===== الحفظ والسجل والمشاركة ===== */
+  var HKEY = 'ec-history-v1', KINDS = { wire: 'سلك وقاطع', cool: 'تبريد', panel: 'لوحة' };
+  function hload() { try { var a = JSON.parse(localStorage.getItem(HKEY)); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+  function hsave(a) { try { localStorage.setItem(HKEY, JSON.stringify(a.slice(0, 100))); return true; } catch (e) { return false; } }
+  function snap(fm, kind) {
+    var d = {};
+    Array.prototype.forEach.call(fm.elements, function (el) {
+      if (!el.name && !el.id) return;
+      if (el.type === 'radio') { if (el.checked) d['r:' + el.name] = el.value; }
+      else if (el.id && !plist.contains(el) && el.id !== 'padd') d['i:' + el.id] = el.value;
+    });
+    return { d: d, rows: kind === 'panel' ? JSON.parse(JSON.stringify(panelRows)) : null };
+  }
+  function restore(fm, sn) {
+    Object.keys(sn.d).forEach(function (k) {
+      var v = sn.d[k];
+      if (k.slice(0, 2) === 'r:') { var r = fm.querySelector('input[name="' + k.slice(2) + '"][value="' + v + '"]'); if (r) r.checked = true; }
+      else { var el = $(k.slice(2)); if (el) el.value = v; }
+    });
+  }
+  function openItem(it) {
+    if (it.kind === 'wire') { restore(form, it.snap); applyLoadUI(); onModeChange(); render(); showTab('wire'); }
+    else if (it.kind === 'cool') { restore(cform, it.snap); renderCool(); showTab('cooling'); }
+    else { restore(pform, it.snap); if (it.snap.rows) { panelRows.length = 0; it.snap.rows.forEach(function (x) { panelRows.push(x); }); } drawList(); renderPanel(); showTab('panel'); }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  function flash(b, t, old) { b.textContent = t; setTimeout(function () { b.textContent = old; }, 1600); }
+  function copyText(t, b) {
+    var old = b.textContent;
+    try { navigator.clipboard.writeText(t).then(function () { flash(b, 'تم النسخ', old); }, function () { flash(b, 'تعذّر النسخ', old); }); }
+    catch (e) { flash(b, 'تعذّر النسخ', old); }
+  }
+  function shareText(t) {
+    var full = t + '\n\n— حاسبة الكهربائي';
+    if (navigator.share) { navigator.share({ title: 'حاسبة الكهربائي', text: full }).catch(function () {}); }
+    else { window.open('https://wa.me/?text=' + encodeURIComponent(full), '_blank', 'noopener'); }
+  }
+  function titled(name, sum) { return (name ? name + '\n' : '') + sum; }
+  function bar(host, kind, summary, fm) {
+    var box = host.querySelector('[data-acts]');
+    if (!box) return;
+    box.innerHTML = '<input type="text" class="nm" maxlength="40" placeholder="اسم الحساب (مثلاً: غرفة النوم)" aria-label="اسم الحساب"><div class="row"><button type="button" class="copy" data-a="copy">نسخ</button><button type="button" class="copy" data-a="share">مشاركة</button><button type="button" class="copy sv" data-a="save">حفظ في السجل</button></div>';
+    box.addEventListener('click', function (e) {
+      var a = e.target.getAttribute('data-a'), nm = box.querySelector('.nm').value.trim();
+      if (a === 'copy') copyText(titled(nm, summary), e.target);
+      if (a === 'share') shareText(titled(nm, summary));
+      if (a === 'save') {
+        var list = hload();
+        list.unshift({ id: Date.now(), kind: kind, name: nm, summary: summary, ts: Date.now(), snap: snap(fm, kind) });
+        flash(e.target, hsave(list) ? 'تم الحفظ ✓' : 'تعذّر الحفظ', 'حفظ في السجل');
+        drawHistory();
+      }
+    });
+  }
+  function two(b, label, fn) {
+    if (b.getAttribute('data-arm')) { b.removeAttribute('data-arm'); fn(); return; }
+    b.setAttribute('data-arm', '1'); b.textContent = 'تأكيد؟';
+    setTimeout(function () { if (b.getAttribute('data-arm')) { b.removeAttribute('data-arm'); b.textContent = label; } }, 2500);
+  }
+  function drawHistory() {
+    var list = hload(), ul = $('hlist');
+    $('t-history').textContent = list.length ? 'السجل (' + list.length + ')' : 'السجل';
+    if (!list.length) { ul.innerHTML = '<li class="empty">لا توجد حسابات محفوظة بعد. اضغط «حفظ في السجل» تحت أي نتيجة.</li>'; return; }
+    ul.innerHTML = list.map(function (it, i) {
+      var d = new Date(it.ts), ds = d.toLocaleDateString('en-GB') + ' ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      return '<li class="hitem" data-i="' + i + '"><h3></h3><div class="meta">' + KINDS[it.kind] + ' · <bdi dir="ltr">' + ds + '</bdi></div><p class="sum"></p><div class="row"><button type="button" class="copy sv" data-h="open">فتح</button><button type="button" class="copy" data-h="share">مشاركة</button><button type="button" class="copy" data-h="copy">نسخ</button><button type="button" class="copy" data-h="del">حذف</button></div></li>';
+    }).join('');
+    Array.prototype.forEach.call(ul.children, function (li) {
+      var it = list[+li.getAttribute('data-i')];
+      li.querySelector('h3').textContent = it.name || it.summary.split(' — ')[0];
+      li.querySelector('.sum').textContent = it.summary;
+    });
+  }
+  $('hlist').addEventListener('click', function (e) {
+    var h = e.target.getAttribute('data-h'), li = e.target.closest('.hitem');
+    if (!h || !li) return;
+    var list = hload(), it = list[+li.getAttribute('data-i')];
+    if (!it) return;
+    if (h === 'open') openItem(it);
+    if (h === 'share') shareText(titled(it.name, it.summary));
+    if (h === 'copy') copyText(titled(it.name, it.summary), e.target);
+    if (h === 'del') two(e.target, 'حذف', function () { list.splice(+li.getAttribute('data-i'), 1); hsave(list); drawHistory(); });
+  });
+  $('hshareall').addEventListener('click', function () {
+    var l = hload(); if (!l.length) return;
+    shareText(l.map(function (it, i) { return (i + 1) + '. ' + titled(it.name, it.summary); }).join('\n\n'));
+  });
+  $('hclear').addEventListener('click', function (e) {
+    if (!hload().length) return;
+    two(e.target, 'مسح الكل', function () { hsave([]); drawHistory(); });
+  });
+
+  /* ===== التبويبات ===== */
+  var tabBtns = document.querySelectorAll('.tabs button');
+  function showTab(t) {
+    t = (t === 'cooling' || t === 'panel' || t === 'history') ? t : 'wire';
+    $('tab-wire').hidden = t !== 'wire';
+    $('tab-cooling').hidden = t !== 'cooling';
+    $('tab-panel').hidden = t !== 'panel';
+    $('tab-history').hidden = t !== 'history';
+    Array.prototype.forEach.call(tabBtns, function (b) { b.setAttribute('aria-selected', b.getAttribute('data-tab') === t ? 'true' : 'false'); });
+    try { if (location.hash !== '#' + t) location.hash = t; } catch (e) {}
+  }
+  Array.prototype.forEach.call(tabBtns, function (b) { b.addEventListener('click', function () { showTab(b.getAttribute('data-tab')); }); });
+  window.addEventListener('hashchange', function () { showTab(location.hash.slice(1)); });
+
+  onModeChange();
+  applyLoadUI();
+  render();
+  renderCool();
+  drawList();
+  renderPanel();
+  drawHistory();
+  showTab(location.hash.slice(1));
+}
+</script>
+
+<script>
+var dp = null, ib = document.getElementById('install');
+window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); dp = e; ib.classList.add('show'); });
+ib.addEventListener('click', function () { if (dp) { dp.prompt(); dp = null; ib.classList.remove('show'); } });
+window.addEventListener('appinstalled', function () { ib.classList.remove('show'); });
+if ('serviceWorker' in navigator) { window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js'); }); }
+</script>
+</body>
+</html>
